@@ -21,15 +21,12 @@ jobs:
           FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
-          # 파일들 수정
-          find . -type f \( -name "*.html" -o -name "*.js" \) ! -path "./.git/*" -exec sed -i \
-            -e "s|__FIREBASE_API_KEY__|$FIREBASE_API_KEY|g" \
-            -e "s|__FIREBASE_AUTH_DOMAIN__|$FIREBASE_AUTH_DOMAIN|g" \
-            -e "s|__FIREBASE_PROJECT_ID__|$FIREBASE_PROJECT_ID|g" \
-            -e "s|__FIREBASE_STORAGE_BUCKET__|$FIREBASE_STORAGE_BUCKET|g" \
-            -e "s|__FIREBASE_MESSAGING_SENDER_ID__|$FIREBASE_MESSAGING_SENDER_ID|g" \
-            -e "s|__FIREBASE_APP_ID__|$FIREBASE_APP_ID|g" \
-            {} +
+          sed -i "s|__FIREBASE_API_KEY__|$FIREBASE_API_KEY|g" index.html app.html js/config.js
+          sed -i "s|__FIREBASE_AUTH_DOMAIN__|$FIREBASE_AUTH_DOMAIN|g" index.html app.html js/config.js
+          sed -i "s|__FIREBASE_PROJECT_ID__|$FIREBASE_PROJECT_ID|g" index.html app.html js/config.js
+          sed -i "s|__FIREBASE_STORAGE_BUCKET__|$FIREBASE_STORAGE_BUCKET|g" index.html app.html js/config.js
+          sed -i "s|__FIREBASE_MESSAGING_SENDER_ID__|$FIREBASE_MESSAGING_SENDER_ID|g" index.html app.html js/config.js
+          sed -i "s|__FIREBASE_APP_ID__|$FIREBASE_APP_ID|g" index.html app.html js/config.js
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -37,4 +34,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./
           publish_branch: gh-pages
-          exclude_assets: '.git,.github,backend,frontend,*.md,*.json,*.rules'
+          exclude_assets: '.github,backend,frontend,*.md,*.rules'
