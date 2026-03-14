@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G-Sync 로그인</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/custom.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800">
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-md p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-slate-900 mb-2">🔐 G-Sync</h1>
+                <p class="text-slate-600">공공 업무 자동화 비서</p>
+            </div>
+
+            <!-- 탭 전환 버튼 -->
+            <div class="flex gap-2 mb-6">
+                <button id="tab-login-btn" class="flex-1 py-2 px-4 rounded-lg font-semibold transition-colors bg-blue-600 text-white">
+                    로그인
+                </button>
+                <button id="tab-signup-btn" class="flex-1 py-2 px-4 rounded-lg font-semibold transition-colors bg-slate-200 text-slate-700 hover:bg-slate-300">
+                    회원가입
+                </button>
+            </div>
+
+            <!-- 로그인 탭 -->
+            <div id="login-tab" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">이메일</label>
+                    <input id="login-email" type="email" placeholder="example@email.com"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">비밀번호</label>
+                    <input id="login-password" type="password" placeholder="••••••"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button id="login-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                    로그인
+                </button>
+            </div>
+
+            <!-- 회원가입 탭 -->
+            <div id="signup-tab" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">이름</label>
+                    <input id="signup-name" type="text" placeholder="홍길동"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">이메일</label>
+                    <input id="signup-email" type="email" placeholder="example@email.com"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">부서</label>
+                    <input id="signup-department" type="text" placeholder="행정안전부"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">비밀번호</label>
+                    <input id="signup-password" type="password" placeholder="최소 6자"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">비밀번호 확인</label>
+                    <input id="signup-password-confirm" type="password" placeholder="••••••"
+                        class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <button id="signup-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                    회원가입
+                </button>
+            </div>
+
+            <!-- 토스트 메시지 -->
+            <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, query, where, getDocs, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // config.js에서 설정 로드
+        const config = {
+            apiKey: 'AIzaSyDdUiInywyyfjjxqVX04NCiJr5Q9Dm68EA',
+            authDomain: 'g-sync-3626a.firebaseapp.com',
+            projectId: 'g-sync-3626a',
+            storageBucket: 'g-sync-3626a.firebasestorage.app',
+            messagingSenderId: '995580306053',
+            appId: '1:995580306053:web:9cd8b3042358c714e2ffec'
+        };
+
+        const app = initializeApp(config);
+        const db = getFirestore(app);
+        window._db = db;
+        window._app = app;
+
+        // auth.js 로드
+        const script = document.createElement('script');
+        script.src = 'js/auth.js';
+        document.head.appendChild(script);
+    </script>
+
+    <script src="js/toast.js"></script>
+    <script src="js/state.js"></script>
+</body>
+</html>

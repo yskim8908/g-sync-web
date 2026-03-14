@@ -1,0 +1,217 @@
+(function(GSync) {
+    'use strict';
+
+    GSync.tab_upload = {
+        render() {
+            const container = document.getElementById('upload-container');
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <!-- 드래그앤드롭 영역 -->
+                    <div class="dropzone" id="dropzone">
+                        <div class="text-4xl mb-3">📄</div>
+                        <p class="text-lg font-semibold text-slate-900 mb-1">파일을 드래그하여 업로드하세요</p>
+                        <p class="text-slate-600 text-sm">또는 클릭하여 파일 선택</p>
+                        <input type="file" id="file-input" class="hidden" accept=".txt,.docx,.pdf,.xlsx,.xls">
+                    </div>
+
+                    <!-- 주의사항 -->
+                    <div class="bg-amber-50 border-l-4 border-amber-400 p-4">
+                        <p class="text-sm text-amber-700">
+                            <strong>📌 지원 형식:</strong> TXT, DOCX, PDF, XLSX, XLS<br>
+                            <strong>💾 권장 크기:</strong> 50KB 이하 (대용량 파일은 처리가 느릴 수 있습니다)
+                        </p>
+                    </div>
+
+                    <!-- 추출 결과 미리보기 -->
+                    <div id="preview-area"></div>
+
+                    <!-- 최근 업로드 목록 -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-900 mb-4">최근 업로드</h3>
+                        <div id="upload-list" class="space-y-2"></div>
+                    </div>
+                </div>
+            `;
+
+            this.attachEventListeners();
+            this.loadRecentUploads();
+        },
+
+        attachEventListeners() {
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('file-input');
+
+            // 드래그앤드롭
+            dropzone.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('dragover');
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    this.handleFile(files[0]);
+                }
+            });
+
+            // 파일 선택
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    this.handleFile(e.target.files[0]);
+                }
+            });
+        },
+
+        async handleFile(file) {
+            const user = GSync.state.getUser();
+            if (!user) {
+                GSync.toast.error('로그인이 필요합니다');
+                return;
+            }
+
+            // 파일 확장자 확인
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!GSync.config.supportedExtensions.includes(ext)) {
+                GSync.toast.error(`지원하지 않는 파일 형식입니다: ${ext}`);
+                return;
+            }
+
+            // 파일 읽기
+            GSync.progress.show('파일을 읽는 중...');
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    let fileContent = e.target.result;
+
+                    // 바이너리 파일은 추가 처리 필요 (여기서는 단순화)
+                    if (typeof fileContent !== 'string') {
+                        fileContent = new TextDecoder().decode(fileContent);
+                    }
+
+                    // extractData API 호출
+                    GSync.progress.show('AI가 데이터를 추출 중입니다...');
+                    const result = await GSync.api.extractData(
+                        user.id,
+                        file.name,
+                        fileContent,
+                        ext.substring(1)
+                    );
+
+                    GSync.progress.hide();
+
+                    if (result.success) {
+                        // 세션에 저장
+                        GSync.state.setSession('extractedData', result.data);
+                        GSync.state.setSession('uploadId', result.uploadId);
+                        GSync.state.setSession('extractMeta', result.meta);
+
+                        GSync.toast.success(`${file.name} 추출 완료!`);
+
+                        // UI 업데이트
+                        this.showPreview(result.data);
+                        this.loadRecentUploads();
+                    } else {
+                        GSync.toast.error(`추출 실패: ${result.error}`);
+                    }
+                } catch (error) {
+                    GSync.progress.hide();
+                    GSync.toast.error(`오류: ${error.message}`);
+                }
+            };
+
+            reader.onerror = () => {
+                GSync.progress.hide();
+                GSync.toast.error('파일을 읽을 수 없습니다');
+            };
+
+            reader.readAsArrayBuffer(file);
+        },
+
+        showPreview(data) {
+            const container = document.getElementById('preview-area');
+            if (!data || Object.keys(data).length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '<div class="bg-green-50 border border-green-200 rounded-lg p-6"><h3 class="font-semibold text-green-900 mb-4">✅ 추출된 데이터</h3>';
+            html += '<div class="data-grid">';
+
+            // 각 카테고리의 필드 표시
+            Object.entries(data).forEach(([category, fields]) => {
+                if (typeof fields === 'object' && fields !== null) {
+                    Object.entries(fields).forEach(([field, value]) => {
+                        if (value) {
+                            const displayValue = typeof value === 'object' ? JSON.stringify(value).substring(0, 50) : String(value).substring(0, 100);
+                            html += `
+                                <div class="data-card">
+                                    <div class="data-card-title">${field}</div>
+                                    <div class="data-card-value">${displayValue}</div>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+            });
+
+            html += '</div><p class="text-sm text-green-700 mt-4">💡 데이터 관리 탭에서 상세 편집이 가능합니다</p></div>';
+            container.innerHTML = html;
+        },
+
+        async loadRecentUploads() {
+            try {
+                const user = GSync.state.getUser();
+                const projectId = GSync.state.getCurrentProjectId();
+
+                if (!user || !projectId) {
+                    return;
+                }
+
+                const { collection, getDocs, orderBy, query, limit } = window;
+                const taskRef = `users/${user.id}/tasks/${projectId}`;
+
+                // 현재 task 문서 로드
+                const { getDoc, doc } = window;
+                const taskSnap = await getDoc(doc(window._db, taskRef));
+
+                if (!taskSnap.exists()) {
+                    return;
+                }
+
+                const taskData = taskSnap.data();
+                const listHtml = document.getElementById('upload-list');
+
+                if (taskData.fileName) {
+                    listHtml.innerHTML = `
+                        <div class="card">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="font-semibold text-slate-900">${taskData.fileName}</p>
+                                    <p class="text-sm text-slate-600">
+                                        ${taskData.uploadedAt ? new Date(taskData.uploadedAt.toDate()).toLocaleString('ko-KR') : '날짜 없음'}
+                                    </p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+                                        ${taskData.status === 'completed' ? '✅ 완료' : '⏳ 처리중'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    listHtml.innerHTML = '<p class="text-slate-600 text-sm">업로드된 파일이 없습니다</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load recent uploads:', error);
+            }
+        }
+    };
+
+})(window.GSync = window.GSync || {});
