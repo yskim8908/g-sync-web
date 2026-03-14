@@ -45,7 +45,8 @@
                 const user = GSync.state.getUser();
                 if (!user) return;
 
-                const { collection, getDocs } = window;
+                // app.html의 module 스크립트에서 window._* 형태로 노출된 Firestore 함수를 가져옴
+                const { _collection: collection, _getDocs: getDocs } = window;
                 const tasksRef = collection(window._db, `users/${user.id}/tasks`);
                 const snapshot = await getDocs(tasksRef);
 
