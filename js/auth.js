@@ -1,7 +1,15 @@
 (function(GSync) {
     'use strict';
 
-    const { collection, query, where, getDocs, addDoc, serverTimestamp } = window;
+    // index.html의 module 스크립트에서 window._* 형태로 노출된 Firestore 함수를 가져옴
+    const {
+        _collection: collection,
+        _query: query,
+        _where: where,
+        _getDocs: getDocs,
+        _addDoc: addDoc,
+        _serverTimestamp: serverTimestamp
+    } = window;
 
     GSync.auth = {
         // 로그인 처리

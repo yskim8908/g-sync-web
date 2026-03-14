@@ -113,7 +113,13 @@
     <!-- Firebase SDK (module) -->
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import {
+            getFirestore,
+            collection, query, where,
+            getDocs, addDoc, serverTimestamp,
+            getDoc, doc,
+            orderBy, limit
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
         const config = {
             apiKey: '__FIREBASE_API_KEY__',
@@ -126,10 +132,25 @@
 
         const app = initializeApp(config);
         const db = getFirestore(app);
-        window._db = db;
+
+        // Firebase 인스턴스 노출
+        window._db  = db;
         window._app = app;
 
-        // 나머지 스크립트 로드
+        // Firestore 함수를 window에 노출 (비-module 스크립트에서 접근 가능하도록)
+        window._collection       = collection;
+        window._query            = query;
+        window._where            = where;
+        window._getDocs          = getDocs;
+        window._addDoc           = addDoc;
+        window._serverTimestamp  = serverTimestamp;
+        window._getDoc           = getDoc;
+        window._doc              = doc;
+        window._orderBy          = orderBy;
+        window._limit            = limit;
+
+        // 스크립트를 순차적으로 로드 (Promise 체인 방식)
+        // forEach는 onload 완료를 기다리지 않으므로 순서가 보장되지 않음
         const scripts = [
             'js/config.js',
             'js/toast.js',
@@ -146,18 +167,25 @@
             'js/app.js'
         ];
 
-        let loaded = 0;
-        scripts.forEach(src => {
+        // 스크립트를 순서대로 하나씩 로드하는 헬퍼
+        function loadScriptSequentially(index) {
+            if (index >= scripts.length) {
+                // 모든 스크립트 로드 완료 후 앱 초기화
+                window.GSync.app.init();
+                return;
+            }
             const script = document.createElement('script');
-            script.src = src;
-            script.onload = () => {
-                loaded++;
-                if (loaded === scripts.length) {
-                    window.GSync.app.init();
-                }
+            script.src = scripts[index];
+            script.onload = () => loadScriptSequentially(index + 1);
+            script.onerror = (e) => {
+                console.error(`스크립트 로드 실패: ${scripts[index]}`, e);
+                // 실패해도 다음 스크립트 시도 (선택적 - 필요 시 중단으로 변경 가능)
+                loadScriptSequentially(index + 1);
             };
             document.head.appendChild(script);
-        });
+        }
+
+        loadScriptSequentially(0);
     </script>
 </body>
 </html>

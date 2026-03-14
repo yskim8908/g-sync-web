@@ -173,11 +173,19 @@
                     return;
                 }
 
-                const { collection, getDocs, orderBy, query, limit } = window;
+                // app.html의 module 스크립트에서 window._* 형태로 노출된 Firestore 함수를 가져옴
+                const {
+                    _collection: collection,
+                    _getDocs: getDocs,
+                    _orderBy: orderBy,
+                    _query: query,
+                    _limit: limit,
+                    _getDoc: getDoc,
+                    _doc: doc
+                } = window;
                 const taskRef = `users/${user.id}/tasks/${projectId}`;
 
                 // 현재 task 문서 로드
-                const { getDoc, doc } = window;
                 const taskSnap = await getDoc(doc(window._db, taskRef));
 
                 if (!taskSnap.exists()) {
