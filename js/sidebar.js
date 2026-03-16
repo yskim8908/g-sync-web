@@ -36,6 +36,7 @@
 
             // 사업 변경 이벤트 리스너
             GSync.state.on('project:changed', () => {
+                this.loadProjects();
                 this.updateProjectName();
             });
         },
