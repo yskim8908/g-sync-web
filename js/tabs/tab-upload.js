@@ -112,6 +112,7 @@
                         GSync.state.setSession('extractedData', result.data);
                         GSync.state.setSession('uploadId', result.uploadId);
                         GSync.state.setSession('extractMeta', result.meta);
+                        GSync.state.setCurrentProjectId(result.uploadId);
 
                         GSync.toast.success(`${file.name} 추출 완료!`);
 
