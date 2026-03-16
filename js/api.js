@@ -39,11 +39,11 @@
         /**
          * extractData - 파일에서 데이터 추출
          */
-        async extractData(userId, fileName, fileContent, fileType) {
+        async extractData(userId, fileName, fileBase64, fileType) {
             const payload = {
                 userId,
                 fileName,
-                fileContent: fileContent.substring(0, 50000),
+                fileBase64,
                 fileType
             };
 
