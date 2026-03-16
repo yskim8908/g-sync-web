@@ -87,19 +87,21 @@
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
-                    let fileContent = e.target.result;
-
-                    // 바이너리 파일은 추가 처리 필요 (여기서는 단순화)
-                    if (typeof fileContent !== 'string') {
-                        fileContent = new TextDecoder().decode(fileContent);
+                    // ArrayBuffer → Base64 인코딩 (바이너리 파일 안전 전송)
+                    const arrayBuffer = e.target.result;
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    let binary = '';
+                    for (let i = 0; i < uint8Array.length; i++) {
+                        binary += String.fromCharCode(uint8Array[i]);
                     }
+                    const fileBase64 = btoa(binary);
 
                     // extractData API 호출
                     GSync.progress.show('AI가 데이터를 추출 중입니다...');
                     const result = await GSync.api.extractData(
                         user.id,
                         file.name,
-                        fileContent,
+                        fileBase64,
                         ext.substring(1)
                     );
 
