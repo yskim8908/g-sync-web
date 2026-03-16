@@ -53,8 +53,8 @@
 
         async loadFilesList(userId, projectId) {
             try {
-                const { collection, getDocs } = window;
-                const formsRef = collection(window._db, `users/${userId}/tasks/${projectId}/forms`);
+                const { collection, getDocs, _db } = window;
+                const formsRef = collection(_db, `users/${userId}/tasks/${projectId}/forms`);
                 const snapshot = await getDocs(formsRef);
 
                 const container = document.getElementById('downloads-list');
@@ -76,8 +76,8 @@
                                 <div class="flex-1">
                                     <p class="font-semibold text-slate-900">📄 ${fileName}</p>
                                     <p class="text-sm text-slate-600">${createdAt}</p>
-                                    ${data.data && data.data.filled_fields ? `
-                                        <p class="text-xs text-slate-500 mt-1">채워진 필드: ${data.data.filled_fields.length}개</p>
+                                    ${data.filledResult && data.filledResult.filled_fields ? `
+                                        <p class="text-xs text-slate-500 mt-1">채워진 필드: ${data.filledResult.filled_fields.length}개</p>
                                     ` : ''}
                                 </div>
                                 <button class="download-btn px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors" data-doc-id="${doc.id}" data-file-name="${fileName}">
@@ -110,8 +110,8 @@
             try {
                 GSync.progress.show('파일을 준비 중입니다...');
 
-                const { doc, getDoc } = window;
-                const docRef = doc(window._db, `users/${userId}/tasks/${projectId}/forms/${docId}`);
+                const { doc, getDoc, _db } = window;
+                const docRef = doc(_db, `users/${userId}/tasks/${projectId}/forms/${docId}`);
                 const docSnap = await getDoc(docRef);
 
                 GSync.progress.hide();
@@ -144,6 +144,19 @@
             }
         },
 
+        _getMimeType(fileName) {
+            const ext = (fileName || '').split('.').pop().toLowerCase();
+            const mimeMap = {
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'hwpx': 'application/vnd.hancom.hwpx',
+                'hwp':  'application/vnd.hancom.hwp',
+                'pdf':  'application/pdf',
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+            };
+            return mimeMap[ext] || 'application/octet-stream';
+        },
+
         _downloadBase64(base64, fileName) {
             try {
                 const binaryString = atob(base64);
@@ -152,7 +165,9 @@
                     bytes[i] = binaryString.charCodeAt(i);
                 }
 
-                const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                // 파일 확장자로 MIME 타입 동적 결정
+                const mimeType = this._getMimeType(fileName);
+                const blob = new Blob([bytes], { type: mimeType });
                 const url = URL.createObjectURL(blob);
 
                 const a = document.createElement('a');
@@ -180,8 +195,8 @@
 
         async recordDownload(userId, projectId, fileName) {
             try {
-                const { collection, addDoc, serverTimestamp } = window;
-                const downloadsRef = collection(window._db, `users/${userId}/tasks/${projectId}/downloads`);
+                const { collection, addDoc, serverTimestamp, _db } = window;
+                const downloadsRef = collection(_db, `users/${userId}/tasks/${projectId}/downloads`);
 
                 await addDoc(downloadsRef, {
                     fileName,
@@ -198,8 +213,8 @@
 
         async loadDownloadHistory(userId, projectId) {
             try {
-                const { collection, getDocs, orderBy, query, limit } = window;
-                const downloadsRef = collection(window._db, `users/${userId}/tasks/${projectId}/downloads`);
+                const { collection, getDocs, orderBy, query, limit, _db } = window;
+                const downloadsRef = collection(_db, `users/${userId}/tasks/${projectId}/downloads`);
 
                 const snapshot = await getDocs(downloadsRef);
 

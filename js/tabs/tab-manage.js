@@ -199,24 +199,34 @@
         },
 
         async save() {
+            let projectId = GSync.state.getCurrentProjectId();
             const user = GSync.state.getUser();
-            const uploadId = GSync.state.getSession('uploadId');
 
-            if (!user || !uploadId) {
-                GSync.toast.error('필요한 정보가 없습니다');
+            if (!user) {
+                GSync.toast.error('로그인이 필요합니다');
                 return;
+            }
+
+            // 새 사업인 경우 임시 ID 생성
+            if (!projectId) {
+                projectId = 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                GSync.state.setCurrentProjectId(projectId);
             }
 
             GSync.progress.show('데이터를 저장 중입니다...');
 
             try {
-                const result = await GSync.api.updateUploadData(user.id, uploadId, this.formData);
+                const result = await GSync.api.updateUploadData(user.id, projectId, this.formData);
 
                 GSync.progress.hide();
 
                 if (result.success) {
                     GSync.state.setSession('extractedData', this.formData);
+                    GSync.state.setSession('uploadId', projectId);
                     GSync.toast.success('데이터가 저장되었습니다');
+
+                    // 사이드바 프로젝트 목록 리로드
+                    GSync.sidebar.loadProjects();
                 } else {
                     GSync.toast.error(`저장 실패: ${result.error}`);
                 }
