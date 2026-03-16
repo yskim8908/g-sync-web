@@ -199,15 +199,20 @@
                 const user = GSync.state.getUser();
                 if (!user) return;
 
-                const uploadId = GSync.state.getSession('uploadId');
-                if (!uploadId) {
+                // 현재 사업 ID 사용 (session uploadId를 fallback으로 사용)
+                let projectId = GSync.state.getCurrentProjectId();
+                if (!projectId) {
+                    projectId = GSync.state.getSession('uploadId');
+                }
+
+                if (!projectId) {
                     document.getElementById('forms-list').innerHTML = '<p class="text-slate-600 text-sm">업로드된 파일이 없습니다</p>';
                     return;
                 }
 
                 // Firestore에서 이전 변환 결과 조회
-                const { collection, query, orderBy, getDocs } = window;
-                const formsRef = collection(window._db, `users/${user.id}/tasks/${uploadId}/forms`);
+                const { collection, getDocs, _db } = window;
+                const formsRef = collection(_db, `users/${user.id}/tasks/${projectId}/forms`);
 
                 const snapshot = await getDocs(formsRef);
 

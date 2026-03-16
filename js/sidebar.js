@@ -24,7 +24,14 @@
             const selector = document.getElementById('project-selector');
             selector.addEventListener('change', async () => {
                 const projectId = selector.value;
-                if (projectId) {
+                if (projectId === '__new__') {
+                    // 새 사업 추가: 상태 초기화 후 데이터 관리 탭으로 이동
+                    GSync.state.setCurrentProjectId(null);
+                    GSync.state.clearSession();
+                    GSync.router.navigateTo('manage');
+                    GSync.toast.info('새 사업 정보를 입력하세요');
+                    selector.value = ''; // 드롭다운 초기화
+                } else if (projectId) {
                     GSync.state.setCurrentProjectId(projectId);
                     GSync.sidebar.updateProjectName();
                     GSync.state.emit('project:changed', projectId);
@@ -91,16 +98,28 @@
                 selector.remove(1);
             }
 
-            // 새 옵션 추가
-            projects.forEach(project => {
+            // 새 옵션 추가 (인덱스 포함)
+            projects.forEach((project, index) => {
                 const option = document.createElement('option');
                 option.value = project.id;
-                option.textContent = project.fileName || `사업 ${project.id}`;
+
+                // "1. 사업명" 형식
+                const fileName = project.fileName || `사업 ${project.id}`;
+                option.textContent = `${index + 1}. ${fileName}`;
+
                 selector.appendChild(option);
             });
 
-            // 이전 값 복원
-            selector.value = currentValue;
+            // "새 사업 추가" 옵션
+            const newOption = document.createElement('option');
+            newOption.value = '__new__';
+            newOption.textContent = '+ 새 사업 추가';
+            selector.appendChild(newOption);
+
+            // 이전 값 복원 (존재하는 사업 ID일 때만)
+            if (currentValue && projects.some(p => p.id === currentValue)) {
+                selector.value = currentValue;
+            }
         },
 
         updateProjectName() {

@@ -138,6 +138,7 @@
         window._app = app;
 
         // Firestore 함수를 window에 노출 (비-module 스크립트에서 접근 가능하도록)
+        // 언더스코어 버전 (하위 호환성 유지)
         window._collection       = collection;
         window._query            = query;
         window._where            = where;
@@ -148,6 +149,18 @@
         window._doc              = doc;
         window._orderBy          = orderBy;
         window._limit            = limit;
+
+        // 언더스코어 없는 버전 (직접 구조분해 할당으로 접근 가능)
+        window.collection        = collection;
+        window.query             = query;
+        window.where             = where;
+        window.getDocs           = getDocs;
+        window.addDoc            = addDoc;
+        window.serverTimestamp   = serverTimestamp;
+        window.getDoc            = getDoc;
+        window.doc               = doc;
+        window.orderBy           = orderBy;
+        window.limit             = limit;
 
         // 스크립트를 순차적으로 로드 (Promise 체인 방식)
         // forEach는 onload 완료를 기다리지 않으므로 순서가 보장되지 않음
