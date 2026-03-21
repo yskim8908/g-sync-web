@@ -116,12 +116,15 @@
 
         /**
          * mergeUploadData - 복수 파일 병합
+         * @param {string} userId
+         * @param {string} targetTaskId - 유지할 사업 task ID
+         * @param {string} sourceTaskId - 병합할 파일의 task ID
          */
-        async mergeUploadData(userId, sourceUploadId, targetUploadId) {
+        async mergeUploadData(userId, targetTaskId, sourceTaskId) {
             const payload = {
                 userId,
-                sourceUploadId,
-                targetUploadId
+                targetTaskId,
+                sourceTaskId
             };
 
             return this.call('mergeUploadData', payload, GSync.config.timeout.update);

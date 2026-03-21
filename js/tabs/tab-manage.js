@@ -53,7 +53,7 @@
         currentTab: '기본정보',
         formData: {},
 
-        render() {
+        async render() {
             const container = document.getElementById('manage-container');
 
             // 현재 사업 확인
@@ -104,18 +104,45 @@
             document.getElementById('save-btn').addEventListener('click', () => this.save());
             document.getElementById('delete-btn').addEventListener('click', () => this.delete());
 
-            // 폼 렌더링
-            this.loadFormData();
+            // 폼 렌더링 (비동기 대기)
+            await this.loadFormData();
             this.renderForm();
         },
 
-        loadFormData() {
-            // sessionStorage에서 추출된 데이터 로드
+        async loadFormData() {
+            // 1단계: sessionStorage에서 추출된 데이터 로드
             const sessionData = GSync.state.getSession('extractedData');
             if (sessionData) {
                 this.formData = JSON.parse(JSON.stringify(sessionData)); // 깊은 복사
-            } else {
-                // 빈 폼으로 초기화
+                return;
+            }
+
+            // 2단계: Firestore fallback (로그인 후 기존 데이터 로드)
+            const user = GSync.state.getUser();
+            const projectId = GSync.state.getCurrentProjectId();
+
+            if (!user || !projectId) {
+                this.formData = {};
+                return;
+            }
+
+            try {
+                const { _getDoc: getDoc, _doc: doc } = window;
+                const taskRef = doc(window._db, `users/${user.id}/tasks/${projectId}`);
+                const taskSnap = await getDoc(taskRef);
+
+                if (taskSnap.exists()) {
+                    const data = taskSnap.data();
+                    this.formData = data.extractedData || {};
+                    // sessionStorage에 캐싱
+                    GSync.state.setSession('extractedData', this.formData);
+                    console.log('[tab-manage] Firestore에서 데이터 로드 완료:', projectId);
+                } else {
+                    console.warn(`[tab-manage] Task 문서 없음: ${projectId}`);
+                    this.formData = {};
+                }
+            } catch (error) {
+                console.error('[tab-manage] Firestore 로드 실패:', error);
                 this.formData = {};
             }
         },
