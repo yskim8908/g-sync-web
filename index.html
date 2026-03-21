@@ -85,8 +85,14 @@
         import {
             getFirestore,
             collection, query, where,
-            getDocs, addDoc, serverTimestamp
+            getDocs, addDoc, setDoc, doc, serverTimestamp
         } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            updateProfile
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
         // config.js에서 설정 로드
         const config = {
@@ -100,18 +106,27 @@
 
         const app = initializeApp(config);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
         // Firebase 인스턴스 노출
         window._db  = db;
         window._app = app;
+        window._auth = auth;
 
-        // Firestore 함수를 window에 노출 (비-module 스크립트에서 접근 가능하도록)
+        // Firestore 함수를 window에 노출
         window._collection       = collection;
         window._query            = query;
         window._where            = where;
         window._getDocs          = getDocs;
         window._addDoc           = addDoc;
+        window._setDoc           = setDoc;
+        window._doc              = doc;
         window._serverTimestamp  = serverTimestamp;
+
+        // Firebase Auth 함수를 window에 노출
+        window._createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window._signInWithEmailAndPassword     = signInWithEmailAndPassword;
+        window._updateProfile                  = updateProfile;
 
         // 모든 의존성이 준비된 후 auth.js 로드
         const script = document.createElement('script');

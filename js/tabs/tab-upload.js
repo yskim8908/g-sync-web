@@ -111,7 +111,7 @@
 
                         // 자동 판단: 기존 사업에 병합할지 여부
                         if (currentProjectId && currentProjectId !== newTaskId) {
-                            // 기존 사업에 병합 모드
+                            // 기존 사업에 병합 시도
                             GSync.progress.show('데이터를 기존 사업에 병합 중입니다...');
 
                             const mergeResult = await GSync.api.mergeUploadData(
@@ -121,7 +121,7 @@
                             );
 
                             if (mergeResult.success) {
-                                // 병합 후 Firestore에서 업데이트된 데이터 조회
+                                // 병합 성공: Firestore에서 업데이트된 데이터 조회
                                 try {
                                     const { _getDoc: getDoc, _doc: doc } = window;
                                     const updatedTask = await getDoc(doc(window._db, `users/${user.id}/tasks/${currentProjectId}`));
@@ -136,12 +136,22 @@
 
                                 GSync.progress.hide();
                                 GSync.toast.success('데이터가 기존 사업에 병합되었습니다');
+                            } else if (mergeResult.error && mergeResult.error.includes('문서 없음')) {
+                                // targetTaskId가 없음 → 새 사업으로 생성
+                                GSync.state.setCurrentProjectId(newTaskId);
+                                GSync.state.setSession('extractedData', result.data);
+                                GSync.state.setSession('uploadId', newTaskId);
+                                GSync.state.setSession('extractMeta', result.meta);
+                                GSync.progress.hide();
+                                GSync.toast.info('기존 사업을 찾을 수 없어 새 사업으로 생성했습니다');
+                                this.showPreview(result.data);
                             } else {
+                                // 다른 에러
                                 GSync.progress.hide();
                                 GSync.toast.error(`병합 실패: ${mergeResult.error}`);
                             }
                         } else {
-                            // 새 사업 모드
+                            // 새 사업 모드 (currentProjectId 없음)
                             GSync.state.setSession('extractedData', result.data);
                             GSync.state.setSession('uploadId', newTaskId);
                             GSync.state.setSession('extractMeta', result.meta);

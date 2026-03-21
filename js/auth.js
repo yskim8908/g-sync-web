@@ -12,48 +12,56 @@
     } = window;
 
     GSync.auth = {
-        // 로그인 처리
+        // 로그인 처리 (Firebase Authentication 사용)
         async login(email, password) {
             try {
                 if (!email || !password) {
                     throw new Error('이메일과 비밀번호를 입력해주세요');
                 }
 
-                // Firestore에서 사용자 조회
+                // Firebase Authentication으로 로그인
+                const { _signInWithEmailAndPassword: signInWithEmailAndPassword } = window;
+                const userCredential = await signInWithEmailAndPassword(
+                    window._auth,
+                    email,
+                    password
+                );
+
+                const authUser = userCredential.user;
+
+                // Firestore에서 추가 정보 조회
                 const usersRef = collection(window._db, 'users');
                 const q = query(usersRef, where('email', '==', email));
                 const snapshot = await getDocs(q);
 
-                if (snapshot.empty) {
-                    throw new Error('등록되지 않은 이메일입니다');
-                }
-
-                const userDoc = snapshot.docs[0];
-                const userData = userDoc.data();
-
-                // 비밀번호 확인 (TODO: 실제로는 bcrypt 사용 필요)
-                if (userData.password !== password) {
-                    throw new Error('비밀번호가 맞지 않습니다');
-                }
-
-                // 로그인 성공 - 상태 저장
-                const user = {
-                    id: userDoc.id,
-                    email: userData.email,
-                    name: userData.name || '',
-                    department: userData.department || ''
+                let userData = {
+                    id: authUser.uid,
+                    email: authUser.email,
+                    name: authUser.displayName || '',
+                    department: ''
                 };
 
-                GSync.state.setUser(user);
-                return { success: true, user };
+                if (!snapshot.empty) {
+                    const fsData = snapshot.docs[0].data();
+                    userData.department = fsData.department || '';
+                }
+
+                GSync.state.setUser(userData);
+                return { success: true, user: userData };
 
             } catch (error) {
                 console.error('Login error:', error);
-                return { success: false, error: error.message };
+                let errorMsg = error.message;
+                if (error.code === 'auth/user-not-found') {
+                    errorMsg = '등록되지 않은 이메일입니다';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMsg = '비밀번호가 맞지 않습니다';
+                }
+                return { success: false, error: errorMsg };
             }
         },
 
-        // 회원가입 처리
+        // 회원가입 처리 (Firebase Authentication + Firestore)
         async signup(name, email, password, passwordConfirm, department) {
             try {
                 // 입력 검증
@@ -69,30 +77,51 @@
                     throw new Error('비밀번호는 최소 6자 이상이어야 합니다');
                 }
 
-                // 중복 이메일 확인
+                // Firebase Authentication에 사용자 계정 생성
+                const {
+                    _createUserWithEmailAndPassword: createUserWithEmailAndPassword,
+                    _updateProfile: updateProfile
+                } = window;
+
+                const userCredential = await createUserWithEmailAndPassword(
+                    window._auth,
+                    email,
+                    password
+                );
+
+                const authUser = userCredential.user;
+
+                // Firebase Auth의 displayName 업데이트
+                await updateProfile(authUser, {
+                    displayName: name
+                });
+
+                // Firestore에 사용자 정보 저장 (uid로 문서 생성)
                 const usersRef = collection(window._db, 'users');
-                const q = query(usersRef, where('email', '==', email));
-                const snapshot = await getDocs(q);
+                const { _setDoc: setDoc, _doc: doc } = window;
 
-                if (!snapshot.empty) {
-                    throw new Error('이미 등록된 이메일입니다');
-                }
-
-                // Firestore에 사용자 저장
-                const result = await addDoc(usersRef, {
+                await setDoc(doc(usersRef, authUser.uid), {
+                    uid: authUser.uid,
                     name,
                     email,
-                    password, // TODO: bcrypt로 암호화
                     department,
                     createdAt: serverTimestamp(),
                     status: 'active'
                 });
 
-                return { success: true, userId: result.id };
+                return { success: true, userId: authUser.uid };
 
             } catch (error) {
                 console.error('Signup error:', error);
-                return { success: false, error: error.message };
+                let errorMsg = error.message;
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMsg = '이미 등록된 이메일입니다';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMsg = '유효하지 않은 이메일입니다';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMsg = '비밀번호가 너무 약합니다';
+                }
+                return { success: false, error: errorMsg };
             }
         }
     };
