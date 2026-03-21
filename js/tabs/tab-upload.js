@@ -105,21 +105,58 @@
                         ext.substring(1)
                     );
 
-                    GSync.progress.hide();
-
                     if (result.success) {
-                        // 세션에 저장
-                        GSync.state.setSession('extractedData', result.data);
-                        GSync.state.setSession('uploadId', result.uploadId);
-                        GSync.state.setSession('extractMeta', result.meta);
-                        GSync.state.setCurrentProjectId(result.uploadId);
+                        const newTaskId = result.uploadId;
+                        const currentProjectId = GSync.state.getCurrentProjectId();
 
-                        GSync.toast.success(`${file.name} 추출 완료!`);
+                        // 자동 판단: 기존 사업에 병합할지 여부
+                        if (currentProjectId && currentProjectId !== newTaskId) {
+                            // 기존 사업에 병합 모드
+                            GSync.progress.show('데이터를 기존 사업에 병합 중입니다...');
 
-                        // UI 업데이트
-                        this.showPreview(result.data);
+                            const mergeResult = await GSync.api.mergeUploadData(
+                                user.id,
+                                currentProjectId,  // targetTaskId (유지할 사업)
+                                newTaskId          // sourceTaskId (방금 업로드한 파일)
+                            );
+
+                            if (mergeResult.success) {
+                                // 병합 후 Firestore에서 업데이트된 데이터 조회
+                                try {
+                                    const { _getDoc: getDoc, _doc: doc } = window;
+                                    const updatedTask = await getDoc(doc(window._db, `users/${user.id}/tasks/${currentProjectId}`));
+                                    if (updatedTask.exists()) {
+                                        const updatedData = updatedTask.data().extractedData;
+                                        GSync.state.setSession('extractedData', updatedData);
+                                        this.showPreview(updatedData);
+                                    }
+                                } catch (error) {
+                                    console.error('[tab-upload] 병합 후 데이터 조회 실패:', error);
+                                }
+
+                                GSync.progress.hide();
+                                GSync.toast.success('데이터가 기존 사업에 병합되었습니다');
+                            } else {
+                                GSync.progress.hide();
+                                GSync.toast.error(`병합 실패: ${mergeResult.error}`);
+                            }
+                        } else {
+                            // 새 사업 모드
+                            GSync.state.setSession('extractedData', result.data);
+                            GSync.state.setSession('uploadId', newTaskId);
+                            GSync.state.setSession('extractMeta', result.meta);
+                            GSync.state.setCurrentProjectId(newTaskId);
+
+                            GSync.progress.hide();
+                            GSync.toast.success(`${file.name} 추출 완료!`);
+
+                            // UI 업데이트
+                            this.showPreview(result.data);
+                        }
+
                         this.loadRecentUploads();
                     } else {
+                        GSync.progress.hide();
                         GSync.toast.error(`추출 실패: ${result.error}`);
                     }
                 } catch (error) {

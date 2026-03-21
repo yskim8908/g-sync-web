@@ -45,6 +45,14 @@
             GSync.state.on('project:changed', () => {
                 this.loadProjects();
                 this.updateProjectName();
+
+                // 새 사업이므로 sessionStorage 초기화 (다음 로드 시 Firestore에서 조회)
+                GSync.state.clearSession('extractedData');
+
+                // 데이터 관리 탭의 카테고리 초기화
+                if (GSync.tab_manage) {
+                    GSync.tab_manage.currentTab = '기본정보';
+                }
             });
         },
 
